@@ -23,4 +23,4 @@ fn handle_connection(mut stream: TcpStream) {
     stream.read_to_end(&mut buf).unwrap();
 
     stream.write_all(&buf).unwrap();
- }
+}
