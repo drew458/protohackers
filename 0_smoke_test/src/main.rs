@@ -1,5 +1,8 @@
 use std::{io::{Read, Write}, net::{TcpListener, TcpStream}, thread};
 
+/**
+ * This is a very stupid implementation. The server spawns a new thread for every connecction that arrives without reusing any.
+ */
 fn main() {
     let listener = TcpListener::bind("127.0.0.1:9876").unwrap();
 
@@ -8,7 +11,7 @@ fn main() {
             Ok(stream) => {
                 thread::spawn(|| handle_connection(stream));
             }
-            Err(e) => { println!("connection failed") }
+            Err(e) => { println!("connection failed. Error: {}", e) }
         }
     }
 }
