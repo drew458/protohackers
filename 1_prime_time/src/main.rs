@@ -60,7 +60,6 @@ fn handle_connection(mut stream: TcpStream) {
         }
 
         let req: Result<Request, serde_json::Error> = serde_json::from_str(&total_str);
-
         match req {
             Ok(req) => {
 
@@ -76,7 +75,7 @@ fn handle_connection(mut stream: TcpStream) {
             Err(_e) => {
 
                 // Whenever you receive a malformed request, send back a single malformed response, and disconnect the client.
-                let mut res = Response::new("Malformed".into(), false);
+                let res = Response::new("Malformed".into(), false);
                 write_res(&stream, &res);
                 return;
             }
