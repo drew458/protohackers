@@ -17,7 +17,6 @@ struct Response {
 impl Response {
 
     fn new(method: String, prime: bool) -> Response {
-
         Response {
             method,
             prime
@@ -28,6 +27,7 @@ impl Response {
 fn main() {
     let listener = TcpListener::bind("127.0.0.1:9876").unwrap();
 
+    // Each connection spawns a new thread
     for stream in listener.incoming() {
         match stream {
             Ok(stream) => {
@@ -59,17 +59,42 @@ fn handle_connection(mut stream: TcpStream) {
             }
         }
 
-        let req: Request = serde_json::from_str(&total_str).unwrap();
-        let mut res = Response::new(req.method, false);
+        let req: Result<Request, serde_json::Error> = serde_json::from_str(&total_str);
 
-        if is_prime(req.number){
-            res.prime = true;
+        match req {
+            Ok(req) => {
+
+                // Whenever you receive a conforming request, send back a correct response, and wait for another request.
+                let mut res = Response::new(req.method, false);
+
+                if is_prime(req.number){
+                    res.prime = true;
+                }
+                
+                write_res(&stream, &res);
+            },
+            Err(_e) => {
+
+                // Whenever you receive a malformed request, send back a single malformed response, and disconnect the client.
+                let mut res = Response::new("Malformed".into(), false);
+                write_res(&stream, &res);
+                return;
+            }
         }
         
-        let res_str = serde_json::to_string(&res).unwrap();
-
-        stream.write_all(res_str.as_bytes()).unwrap();    
     }
+}
+
+fn write_res<T>(mut stream: &TcpStream, res: &T)
+where
+    T: ?Sized + Serialize, 
+{
+
+    let mut res_str = serde_json::to_string(res).unwrap()
+            .replace("\n", "");
+    res_str.push_str("\n");
+
+    stream.write_all(res_str.as_bytes()).unwrap(); 
 }
 
 fn is_prime(n: i64) -> bool {
