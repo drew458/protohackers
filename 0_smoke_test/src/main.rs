@@ -1,4 +1,8 @@
-use std::{io::{Read, Write}, net::{TcpListener, TcpStream}, thread};
+use std::{
+    io::{Read, Write},
+    net::{TcpListener, TcpStream},
+    thread,
+};
 
 /**
  * This is a very stupid implementation. The server spawns a new thread for every connecction that arrives without reusing any.
@@ -15,13 +19,14 @@ fn main() {
             Ok(stream) => {
                 thread::spawn(|| handle_connection(stream));
             }
-            Err(e) => { println!("connection failed. Error: {e}") }
+            Err(e) => {
+                println!("connection failed. Error: {e}")
+            }
         }
     }
 }
 
 fn handle_connection(mut stream: TcpStream) {
-
     let mut buf: Vec<u8> = Vec::new();
 
     stream.read_to_end(&mut buf).unwrap();
