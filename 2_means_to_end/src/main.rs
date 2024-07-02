@@ -25,7 +25,7 @@ fn main() {
                 thread::spawn(|| handle_connection(stream));
             }
             Err(e) => {
-                println!("connection failed. Error: {}", e)
+                println!("Connection failed. Error: {}", e)
             }
         }
     }
@@ -34,25 +34,27 @@ fn main() {
 fn handle_connection(mut stream: TcpStream) {
 
     let mut prices = Vec::new();
-    
-    let mut buf: [u8; 9] = [0; 9];
-    let _ = stream.read(&mut buf);  // read 9 bytes
-    let first_char = buf[0].to_ascii_uppercase();
-    
-    match first_char {
-        73 => { // I - Insert operation
-            let ts: &[u8; 4] = buf[1 .. 4].try_into().unwrap();
-            let price: &[u8; 4] = buf[4 .. 9].try_into().unwrap();
-            insert(ts, price, &mut prices)
-        }
-        81 => { // Q - Query operation
-            let min_time: &[u8; 4] = buf[1 .. 4].try_into().unwrap();
-            let max_time: &[u8; 4] = buf[4 .. 9].try_into().unwrap();
 
-            let res_buf = query(min_time, max_time, &prices);
-            stream.write_all(&res_buf).unwrap();
-        }
-        _ => panic!("Undefined")
+    loop {
+        let mut buf: [u8; 9] = [0; 9];
+        let _ = stream.read(&mut buf);  // read 9 bytes
+        let first_char = buf[0].to_ascii_uppercase();
+        
+        match first_char {
+            73 => { // I - Insert operation
+                let ts: &[u8; 4] = buf[1 .. 4].try_into().unwrap();
+                let price: &[u8; 4] = buf[4 .. 9].try_into().unwrap();
+                insert(ts, price, &mut prices)
+            }
+            81 => { // Q - Query operation
+                let min_time: &[u8; 4] = buf[1 .. 4].try_into().unwrap();
+                let max_time: &[u8; 4] = buf[4 .. 9].try_into().unwrap();
+
+                let res_buf = query(min_time, max_time, &prices);
+                stream.write_all(&res_buf).unwrap();
+            }
+            _ => panic!("Undefined")
+        }    
     }
 }
 
@@ -79,7 +81,6 @@ fn query(min_time: &[u8; 4], max_time: &[u8; 4], prices: &Vec<Price>) -> [u8; 4]
 
     let mut prices_sum: i32 = 0;
     let mut count: i32 = 0;
-    let mut mean: i32 = 0;
 
     for price in prices.iter() {
         if min_time <= price.timestamp && price.timestamp >= max_time {
@@ -93,6 +94,6 @@ fn query(min_time: &[u8; 4], max_time: &[u8; 4], prices: &Vec<Price>) -> [u8; 4]
         return 0_i32.to_be_bytes();
     }
 
-    mean = prices_sum / count;
+    let mean = prices_sum / count;
     mean.to_be_bytes()
 }
