@@ -1,22 +1,22 @@
-use std::{io::{Read, Write}, net::{TcpListener, TcpStream}, thread};
+use std::{
+    io::{Read, Write},
+    net::{TcpListener, TcpStream},
+    thread,
+};
 
 struct Price {
     timestamp: u32,
-    price: i32
+    price: i32,
 }
 
 impl Price {
-
     fn new(timestamp: u32, price: i32) -> Price {
-        Price {
-            timestamp,
-            price
-        }
+        Price { timestamp, price }
     }
 }
 
 fn main() {
-    let listener = TcpListener::bind("127.0.0.1:9876").unwrap();
+    let listener = TcpListener::bind("127.0.0.1:9876").expect("Could not bind");
 
     // Each connection spawns a new thread
     for stream in listener.incoming() {
@@ -32,45 +32,48 @@ fn main() {
 }
 
 fn handle_connection(mut stream: TcpStream) {
-
     let mut prices = Vec::new();
 
     loop {
         let mut buf: [u8; 9] = [0; 9];
-        let _ = stream.read(&mut buf);  // read 9 bytes
+        let _ = stream.read(&mut buf); // read 9 bytes
         let first_char = buf[0].to_ascii_uppercase();
-        
+
         match first_char {
-            73 => { // I - Insert operation
-                let ts: &[u8; 4] = buf[1 .. 4].try_into().unwrap();
-                let price: &[u8; 4] = buf[4 .. 9].try_into().unwrap();
+            73 => {
+                // I - Insert operation
+                let ts: &[u8; 4] = buf[1..4].try_into().unwrap();
+                let price: &[u8; 4] = buf[4..9].try_into().unwrap();
                 insert(ts, price, &mut prices)
             }
-            81 => { // Q - Query operation
-                let min_time: &[u8; 4] = buf[1 .. 4].try_into().unwrap();
-                let max_time: &[u8; 4] = buf[4 .. 9].try_into().unwrap();
+            81 => {
+                // Q - Query operation
+                let min_time: &[u8; 4] = buf[1..4].try_into().unwrap();
+                let max_time: &[u8; 4] = buf[4..9].try_into().unwrap();
 
                 let res_buf = query(min_time, max_time, &prices);
                 stream.write_all(&res_buf).unwrap();
             }
-            _ => panic!("Undefined")
-        }    
+            _ => {
+                // Behaviour is undefined if the type specifier is not either 'I' or 'Q'.
+                stream
+                    .shutdown(std::net::Shutdown::Both)
+                    .expect("TCP shutdown call failed")
+            }
+        }
     }
 }
 
 fn insert(timestamp: &[u8; 4], price: &[u8; 4], prices: &mut Vec<Price>) {
-    
     let ts = u32::from_be_bytes(timestamp.to_owned());
     let price: i32 = i32::from_be_bytes(price.to_owned());
 
     let tick = Price::new(ts, price);
 
     prices.push(tick);
-
 }
 
 fn query(min_time: &[u8; 4], max_time: &[u8; 4], prices: &Vec<Price>) -> [u8; 4] {
-
     let min_time = u32::from_be_bytes(min_time.to_owned());
     let max_time = u32::from_be_bytes(max_time.to_owned());
 
