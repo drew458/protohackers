@@ -25,16 +25,19 @@ impl Response {
 }
 
 fn main() {
-    let listener = TcpListener::bind("127.0.0.1:9876").unwrap();
+    let addr = "0.0.0.0";
+    let port = 8888_u16;
 
-    // Each connection spawns a new thread
+    let listener = TcpListener::bind(format!("{}:{}", addr, port)).unwrap();
+    println!("Listening on port {port}");
+
     for stream in listener.incoming() {
         match stream {
             Ok(stream) => {
                 thread::spawn(|| handle_connection(stream));
             }
             Err(e) => {
-                println!("connection failed. Error: {}", e)
+                println!("connection failed. Error: {e}")
             }
         }
     }

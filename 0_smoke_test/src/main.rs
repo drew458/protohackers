@@ -9,7 +9,7 @@ use std::{
  */
 fn main() {
     let addr = "0.0.0.0";
-    let port = 9876;
+    let port = 8888_u16;
 
     let listener = TcpListener::bind(format!("{}:{}", addr, port)).unwrap();
     println!("Listening on port {port}");

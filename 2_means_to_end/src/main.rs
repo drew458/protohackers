@@ -4,35 +4,38 @@ use std::{
     thread,
 };
 
-struct Price {
+struct Tick {
     timestamp: u32,
     price: i32,
 }
 
-impl Price {
-    fn new(timestamp: u32, price: i32) -> Price {
-        Price { timestamp, price }
+impl Tick {
+    fn new(timestamp: u32, price: i32) -> Tick {
+        Tick { timestamp, price }
     }
 }
 
 fn main() {
-    let listener = TcpListener::bind("127.0.0.1:9876").expect("Could not bind");
+    let addr = "0.0.0.0";
+    let port = 8888_u16;
 
-    // Each connection spawns a new thread
+    let listener = TcpListener::bind(format!("{}:{}", addr, port)).unwrap();
+    println!("Listening on port {port}");
+
     for stream in listener.incoming() {
         match stream {
             Ok(stream) => {
                 thread::spawn(|| handle_connection(stream));
             }
             Err(e) => {
-                println!("Connection failed. Error: {}", e)
+                println!("connection failed. Error: {e}")
             }
         }
     }
 }
 
 fn handle_connection(mut stream: TcpStream) {
-    let mut prices = Vec::new();
+    let mut ticks = Vec::new();
 
     loop {
         let mut buf: [u8; 9] = [0; 9];
@@ -44,14 +47,14 @@ fn handle_connection(mut stream: TcpStream) {
                 // I - Insert operation
                 let ts: &[u8; 4] = buf[1..4].try_into().unwrap();
                 let price: &[u8; 4] = buf[4..9].try_into().unwrap();
-                insert(ts, price, &mut prices)
+                insert(ts, price, &mut ticks)
             }
             81 => {
                 // Q - Query operation
                 let min_time: &[u8; 4] = buf[1..4].try_into().unwrap();
                 let max_time: &[u8; 4] = buf[4..9].try_into().unwrap();
 
-                let res_buf = query(min_time, max_time, &prices);
+                let res_buf = query(min_time, max_time, &ticks);
                 stream.write_all(&res_buf).unwrap();
             }
             _ => {
@@ -64,16 +67,16 @@ fn handle_connection(mut stream: TcpStream) {
     }
 }
 
-fn insert(timestamp: &[u8; 4], price: &[u8; 4], prices: &mut Vec<Price>) {
+fn insert(timestamp: &[u8; 4], price: &[u8; 4], prices: &mut Vec<Tick>) {
     let ts = u32::from_be_bytes(timestamp.to_owned());
     let price: i32 = i32::from_be_bytes(price.to_owned());
 
-    let tick = Price::new(ts, price);
+    let tick = Tick::new(ts, price);
 
     prices.push(tick);
 }
 
-fn query(min_time: &[u8; 4], max_time: &[u8; 4], prices: &Vec<Price>) -> [u8; 4] {
+fn query(min_time: &[u8; 4], max_time: &[u8; 4], prices: &Vec<Tick>) -> [u8; 4] {
     let min_time = u32::from_be_bytes(min_time.to_owned());
     let max_time = u32::from_be_bytes(max_time.to_owned());
 
