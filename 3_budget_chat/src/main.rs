@@ -2,6 +2,7 @@ use std::{
     collections::HashMap,
     io::{ErrorKind, Read, Write},
     net::{TcpListener, TcpStream},
+    str::from_utf8,
     sync::{Arc, RwLock},
     thread,
 };
@@ -43,7 +44,7 @@ fn client_connected(
     let _ = stream.write().unwrap().read(&mut buf);
 
     // Now, a name has been written. Must allow at least 16 characters
-    let user_name = String::from_utf8(buf).unwrap();
+    let user_name = from_utf8(&buf).unwrap();
 
     // If the user requests an illegal name, the server may send an informative error message to the client, and the server must disconnect the client
     if user_name.len() > 100 {
@@ -71,23 +72,24 @@ fn client_connected(
     for (_k, v) in users.write().unwrap().iter() {
         let mut s = String::new();
         s.push_str("* ");
-        s.push_str(user_name.as_str());
+        s.push_str(user_name);
         s.push_str(" has entered the room");
 
         let _ = v.write().unwrap().write(s.as_bytes());
     }
 
+    // Register the user
     users
         .write()
         .unwrap()
-        .insert(user_name.clone(), stream.clone()); // register the user
+        .insert(user_name.to_string(), stream.clone());
 
     // From now on, chat messages will be received
     loop {
         let mut buf = Vec::new();
         match stream.write().unwrap().read(&mut buf) {
             Ok(bytes) => {
-                // If 0 bytes are read, probably the connection has been shut down by the client
+                // If 0 bytes are read, the connection has been shut down by the client
                 if bytes == 0 {
                     // Send message to all the connected clients that the user has left the chat
                     for (k, v) in users.write().unwrap().iter() {
@@ -97,7 +99,7 @@ fn client_connected(
 
                         let mut s = String::new();
                         s.push_str("* ");
-                        s.push_str(user_name.as_str());
+                        s.push_str(user_name);
                         s.push_str(" has left the room");
 
                         let _ = v.write().unwrap().write(s.as_bytes());
@@ -117,7 +119,7 @@ fn client_connected(
 
                         let mut s = String::new();
                         s.push_str("* ");
-                        s.push_str(user_name.as_str());
+                        s.push_str(user_name);
                         s.push_str(" has left the room");
 
                         let _ = v.write().unwrap().write(s.as_bytes());
@@ -128,9 +130,9 @@ fn client_connected(
             }
         }
 
-        let message = String::from_utf8(buf).unwrap();
+        let message = from_utf8(&buf).unwrap();
 
-        // Send message to all the connected clients except itself
+        // Send message to the other connected clients
         for (k, v) in users.write().unwrap().iter() {
             if *k == user_name {
                 continue;
@@ -140,7 +142,7 @@ fn client_connected(
             s.push_str("[");
             s.push_str(k);
             s.push_str("] ");
-            s.push_str(message.as_str());
+            s.push_str(message);
 
             let _ = v.write().unwrap().write(s.as_bytes());
         }
