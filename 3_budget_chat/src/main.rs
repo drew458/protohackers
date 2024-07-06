@@ -1,3 +1,101 @@
+use std::{collections::HashMap, io::{Read, Write}, net::{TcpListener, TcpStream}, sync::{Arc, RwLock}, thread};
+
 fn main() {
-    println!("Hello, world!");
+    let addr = "0.0.0.0";
+    let port = 8888_u16;
+
+    //let users = Arc::from(RwLock::new(Vec::new()));
+    let users_map = Arc::from(RwLock::new(HashMap::new()));
+    //let message_queue = Arc::from(RwLock::new(VecDeque::new()));
+
+    let listener = TcpListener::bind(format!("{}:{}", addr, port)).unwrap();
+    println!("Listening on port {port}");
+
+    for stream in listener.incoming() {
+        match stream {
+            Ok(stream) => {
+                //let shared_vec = users.clone();
+                //let shared_queue = message_queue.clone();
+                let shared_stream = Arc::from(RwLock::new(stream)).clone();
+                let shared_map = users_map.clone();
+
+                thread::spawn(|| client_connected(shared_stream, shared_map));
+            }
+            Err(e) => {
+                println!("connection failed. Error: {e}")
+            }
+        }
+    }
+}
+
+fn client_connected(stream: Arc<RwLock<TcpStream>>, users: Arc<RwLock<HashMap<String, Arc<RwLock<TcpStream>>>>>) {
+
+    let _ = stream.write().unwrap().write_all("Welcome to budgetchat! What shall I call you?".as_bytes());
+
+    let mut buf = Vec::new();
+    let _ = stream.write().unwrap().read(&mut buf);
+
+    // Now, a name has been written. Must allow at least 16 characters
+    let user_name = String::from_utf8(buf).unwrap();
+
+    // If the user requests an illegal name, the server may send an informative error message to the client, and the server must disconnect the client
+    if user_name.len() > 100 {
+        let _ = stream.write().unwrap().write("Name must not be over 100 characters".as_bytes());
+        let _ = stream.write().unwrap().shutdown(std::net::Shutdown::Both);
+        return;
+    }
+
+    // The server must send the new user a message that lists all present users' names, not including the new user
+    let mut buf: String = "* The room contains: ".into();
+    for (i, item) in users.read().unwrap().keys().enumerate() {
+
+        buf.push_str(item);
+
+        if !(i == users.read().unwrap().len() - 1) {
+            // This is not the last element
+            buf.push_str(",");
+        }
+    }
+    let _ = stream.write().unwrap().write(buf.as_bytes());
+
+    // Send notification to all the connected clients that the new user has entered the room
+    for (_k, v) in users.write().unwrap().iter() {
+
+        let mut s = String::new();
+        s.push_str("* ");
+        s.push_str(user_name.as_str());
+        s.push_str(" has entered the room");
+
+        let _ = v.write().unwrap().write(s.as_bytes());
+    }
+
+    users.write().unwrap().insert(user_name.clone(), stream.clone()); // register the user
+
+    // From now on, chat messages will be received
+    loop {
+        let mut buf = Vec::new();
+        let _ = stream.write().unwrap().read(&mut buf);
+
+        let message = String::from_utf8(buf).unwrap();
+
+        // Send message to all the connected clients except itself
+        for (k, v) in users.write().unwrap().iter() {
+
+            if *k == user_name {
+                continue;
+            }
+
+            let mut s = String::new();
+            s.push_str("[");
+            s.push_str(k);
+            s.push_str("] ");
+            s.push_str(message.as_str());
+
+            let _ = v.write().unwrap().write(s.as_bytes());
+        }
+
+    }
+
+
+
 }
