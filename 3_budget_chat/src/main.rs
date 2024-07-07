@@ -103,6 +103,8 @@ fn client_connected(
                         s.push_str(" has left the room");
 
                         let _ = v.write().unwrap().write(s.as_bytes());
+
+                        return;
                     }
                 }
             }
