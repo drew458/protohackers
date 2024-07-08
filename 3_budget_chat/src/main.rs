@@ -7,12 +7,13 @@ use std::{
     thread,
 };
 
-fn main() {
-    let addr = "0.0.0.0";
-    let port = 8888_u16;
+const ADDR: &str = "0.0.0.0";
+const PORT: u16 = 8888;
 
-    let listener = TcpListener::bind(format!("{}:{}", addr, port)).unwrap();
-    println!("Listening on port {port}");
+fn main() {
+
+    let listener = TcpListener::bind(format!("{}:{}", ADDR, PORT)).unwrap();
+    println!("Listening on port {PORT}");
 
     let users_map = Arc::from(RwLock::new(HashMap::new()));
 
@@ -91,6 +92,8 @@ fn client_connected(
             Ok(bytes) => {
                 // If 0 bytes are read, the connection has been shut down by the client
                 if bytes == 0 {
+                    users.write().unwrap().remove(user_name);
+
                     // Send message to all the connected clients that the user has left the chat
                     for (k, v) in users.write().unwrap().iter() {
                         if *k == user_name {
@@ -113,6 +116,8 @@ fn client_connected(
                 if e.kind() == ErrorKind::Interrupted {
                     continue; // Retry
                 } else {
+                    users.write().unwrap().remove(user_name);
+
                     // Send message to all the connected clients that the user has left the chat
                     for (k, v) in users.write().unwrap().iter() {
                         if *k == user_name {
