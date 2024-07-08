@@ -76,7 +76,7 @@ fn insert(timestamp: &[u8; 4], price: &[u8; 4], prices: &mut Vec<Tick>) {
     prices.push(tick);
 }
 
-fn query(min_time: &[u8; 4], max_time: &[u8; 4], prices: &Vec<Tick>) -> [u8; 4] {
+fn query(min_time: &[u8; 4], max_time: &[u8; 4], prices: &[Tick]) -> [u8; 4] {
     let min_time = u32::from_be_bytes(min_time.to_owned());
     let max_time = u32::from_be_bytes(max_time.to_owned());
 

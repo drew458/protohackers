@@ -11,7 +11,6 @@ const ADDR: &str = "0.0.0.0";
 const PORT: u16 = 8888;
 
 fn main() {
-
     let listener = TcpListener::bind(format!("{}:{}", ADDR, PORT)).unwrap();
     println!("Listening on port {PORT}");
 
@@ -62,21 +61,19 @@ fn client_connected(
     for (i, item) in users.read().unwrap().keys().enumerate() {
         buf.push_str(item);
 
-        if !(i == users.read().unwrap().len() - 1) {
+        if i != users.read().unwrap().len() - 1 {
             // This is not the last element
-            buf.push_str(",");
+            buf.push(',');
         }
     }
     let _ = stream.write().unwrap().write(buf.as_bytes());
 
     // Send notification to all the connected clients that the new user has entered the room
     for (_k, v) in users.write().unwrap().iter() {
-        let mut s = String::new();
-        s.push_str("* ");
-        s.push_str(user_name);
-        s.push_str(" has entered the room");
-
-        let _ = v.write().unwrap().write(s.as_bytes());
+        let _ = v
+            .write()
+            .unwrap()
+            .write(format!("* {user_name} has entered the room").as_bytes());
     }
 
     // Register the user
@@ -100,12 +97,10 @@ fn client_connected(
                             continue;
                         }
 
-                        let mut s = String::new();
-                        s.push_str("* ");
-                        s.push_str(user_name);
-                        s.push_str(" has left the room");
-
-                        let _ = v.write().unwrap().write(s.as_bytes());
+                        let _ = v
+                            .write()
+                            .unwrap()
+                            .write(format!("* {user_name} has left the room").as_bytes());
 
                         return;
                     }
@@ -124,12 +119,10 @@ fn client_connected(
                             continue;
                         }
 
-                        let mut s = String::new();
-                        s.push_str("* ");
-                        s.push_str(user_name);
-                        s.push_str(" has left the room");
-
-                        let _ = v.write().unwrap().write(s.as_bytes());
+                        let _ = v
+                            .write()
+                            .unwrap()
+                            .write(format!("* {user_name} has left the room").as_bytes());
                     }
 
                     return;
@@ -145,13 +138,10 @@ fn client_connected(
                 continue;
             }
 
-            let mut s = String::new();
-            s.push_str("[");
-            s.push_str(k);
-            s.push_str("] ");
-            s.push_str(message);
-
-            let _ = v.write().unwrap().write(s.as_bytes());
+            let _ = v
+                .write()
+                .unwrap()
+                .write(format!("[{k}] {message}").as_bytes());
         }
     }
 }

@@ -45,8 +45,8 @@ fn execute_request(
     }
 
     // Insert
-    if message.contains("=") {
-        let (key, val) = message.split_once("=").unwrap();
+    if message.contains('=') {
+        let (key, val) = message.split_once('=').unwrap();
 
         db.write().unwrap().insert(key.to_string(), val.to_string());
     } else {

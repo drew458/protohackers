@@ -49,7 +49,7 @@ fn handle_connection(mut stream: TcpStream) {
 
         // Loop over the single request written by the connection
         loop {
-            let mut buf = Vec::with_capacity(1);
+            let mut buf = Vec::new();
             stream.read(&mut buf).unwrap();
 
             let received_str = String::from_utf8(buf).unwrap();
@@ -87,8 +87,8 @@ fn write_res<T>(mut stream: &TcpStream, res: &T)
 where
     T: ?Sized + Serialize,
 {
-    let mut res_str = serde_json::to_string(res).unwrap().replace("\n", "");
-    res_str.push_str("\n");
+    let mut res_str = serde_json::to_string(res).unwrap().replace('\n', "");
+    res_str.push('\n');
 
     stream.write_all(res_str.as_bytes()).unwrap();
 }
