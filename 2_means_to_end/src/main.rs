@@ -15,12 +15,12 @@ impl Tick {
     }
 }
 
-fn main() {
-    let addr = "0.0.0.0";
-    let port = 8888_u16;
+const ADDR: &str = "0.0.0.0";
+const PORT: u16 = 8888;
 
-    let listener = TcpListener::bind(format!("{}:{}", addr, port)).unwrap();
-    println!("Listening on port {port}");
+fn main() {
+    let listener = TcpListener::bind(format!("{}:{}", ADDR, PORT)).unwrap();
+    println!("Listening on port {PORT}");
 
     for stream in listener.incoming() {
         match stream {

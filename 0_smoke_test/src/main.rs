@@ -4,16 +4,16 @@ use std::{
     thread,
 };
 
+const ADDR: &str = "0.0.0.0";
+const PORT: u16 = 8888;
+
 /**
  * This is a very stupid implementation. The server spawns a new thread for every connecction that arrives without reusing any.
  */
 fn main() {
-    let addr = "0.0.0.0";
-    let port = 8888_u16;
-
-    let listener = TcpListener::bind(format!("{}:{}", addr, port)).unwrap();
-    println!("Listening on port {port}");
-
+    let listener = TcpListener::bind(format!("{}:{}", ADDR, PORT)).unwrap();
+    println!("Listening on port {PORT}");
+    
     for stream in listener.incoming() {
         match stream {
             Ok(stream) => {
